@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>count on me ♪</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root{--y:#F5A623;--ink:#1A1008;--w:#FFFEF5;--red:#E8312A;--coral:#F5622D;--green:#27AE60;--blue:#2980B9;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--y);font-family:'Caveat',cursive;}
+
+/* ── MAIN CANVAS (always full screen) ── */
+#cv{position:fixed;inset:0;width:100%;height:100%;z-index:10;pointer-events:none;}
+
+/* ── MESSAGE BUBBLE ── */
+#bubble{
+  position:fixed;z-index:20;
+  opacity:0;pointer-events:none;
+  transition:opacity .4s ease;
+  max-width:min(420px, 86vw);
+  left:50%;transform:translateX(-50%);
+}
+#bubble.show{opacity:1;pointer-events:all;}
+
+.bubble-inner{
+  background:var(--w);
+  border:3px solid var(--ink);
+  border-radius:16px;
+  padding:22px 24px 18px;
+  box-shadow:5px 5px 0 var(--ink);
+  text-align:center;
+  position:relative;
+}
+/* tail pointing down toward plane */
+.bubble-tail{
+  width:0;height:0;
+  border-left:14px solid transparent;
+  border-right:14px solid transparent;
+  border-top:20px solid var(--ink);
+  margin:0 auto;position:relative;
+}
+.bubble-tail::after{
+  content:'';position:absolute;top:-23px;left:-12px;
+  width:0;height:0;
+  border-left:12px solid transparent;
+  border-right:12px solid transparent;
+  border-top:18px solid var(--w);
+}
+
+.msg-title{
+  font-family:'Caveat',cursive;
+  font-size:clamp(22px,5vw,30px);
+  font-weight:700;color:var(--ink);
+  line-height:1.15;margin-bottom:8px;
+}
+.msg-body{
+  font-family:'Kalam',cursive;
+  font-size:clamp(13px,3vw,16px);
+  line-height:1.85;color:var(--ink);
+  margin-bottom:14px;
+}
+.msg-body strong{color:var(--coral);}
+.msg-body em{color:var(--blue);font-style:normal;font-weight:700;}
+
+/* ── BUTTON ── */
+.btn{
+  font-family:'Caveat',cursive;font-size:clamp(16px,3.5vw,20px);font-weight:700;
+  padding:10px 26px;
+  background:var(--ink);color:var(--y);
+  border:none;border-radius:50px;cursor:pointer;
+  box-shadow:3px 3px 0 rgba(0,0,0,.25);
+  transition:transform .12s,box-shadow .12s;
+  display:inline-block;margin:3px;
+}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 rgba(0,0,0,.25);}
+.btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(0,0,0,.25);}
+.btn.green{background:var(--green);}
+.btn.red{background:var(--red);}
+
+/* ── STAT BARS ── */
+.stats{width:100%;margin:8px 0 12px;}
+.sr{display:flex;align-items:center;gap:6px;margin-bottom:7px;}
+.sl{font-family:'Kalam',cursive;font-size:clamp(11px,2.5vw,13px);color:var(--ink);min-width:140px;text-align:left;}
+.so{flex:1;height:14px;background:rgba(26,16,8,.1);border-radius:20px;overflow:hidden;border:2px solid var(--ink);}
+.si{height:100%;width:0;border-radius:20px;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.sp{font-family:'Kalam',cursive;font-size:11px;min-width:36px;color:var(--ink);}
+
+/* ── PATCHES ── */
+.patch{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;text-align:left;opacity:0;transform:translateX(-12px);transition:opacity .35s,transform .35s;}
+.patch.show{opacity:1;transform:translateX(0);}
+.pt{font-family:'Kalam',cursive;font-size:clamp(13px,2.8vw,15px);color:var(--ink);line-height:1.45;}
+.pt strong{color:var(--coral);}
+
+/* ── LETTER ── */
+.letter{position:relative;text-align:left;}
+.tape{position:absolute;top:-11px;left:50%;transform:translateX(-50%);width:52px;height:18px;background:rgba(255,210,51,.9);border:2px solid rgba(26,16,8,.2);border-radius:3px;}
+.llines{position:absolute;inset:44px 16px 16px;background:repeating-linear-gradient(180deg,transparent 0,transparent 27px,rgba(100,160,255,.26) 27px,rgba(100,160,255,.26) 28px);pointer-events:none;}
+.ltitle{font-family:'Caveat',cursive;font-size:22px;font-weight:700;color:var(--coral);margin-bottom:10px;position:relative;z-index:1;}
+.lbody{font-family:'Kalam',cursive;font-size:clamp(13px,3vw,15px);line-height:1.95;color:var(--ink);position:relative;z-index:1;}
+.lbody strong{color:var(--coral);}
+.lsig{font-family:'Caveat',cursive;font-size:15px;color:rgba(26,16,8,.45);text-align:right;margin-top:10px;position:relative;z-index:1;border-top:1px dashed rgba(26,16,8,.15);padding-top:7px;}
+.yn{display:flex;gap:10px;justify-content:center;margin-top:12px;position:relative;z-index:1;flex-wrap:wrap;}
+
+/* ── CAT ── */
+.cat-wrap{display:flex;flex-direction:column;align-items:center;}
+.cat-msg{font-family:'Caveat',cursive;font-size:clamp(22px,5vw,30px);font-weight:700;margin-top:8px;color:var(--ink);}
+.cat-sub{font-family:'Kalam',cursive;font-size:clamp(13px,3vw,15px);margin-top:3px;margin-bottom:10px;line-height:1.6;color:var(--ink);text-align:center;}
+.cat-sub strong{color:var(--coral);}
+
+/* ── MUSIC BTN ── */
+#mbtn{position:fixed;top:12px;right:14px;z-index:100;font-family:'Caveat',cursive;font-size:14px;font-weight:600;padding:6px 14px;background:rgba(255,255,255,.9);border:2.5px solid var(--ink);border-radius:30px;cursor:pointer;color:var(--ink);box-shadow:3px 3px 0 var(--ink);}
+
+/* ── DOTS ── */
+#dots{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:100;}
+.dot{width:9px;height:9px;border-radius:50%;background:rgba(26,16,8,.18);border:2px solid rgba(26,16,8,.22);transition:all .3s;}
+.dot.on{background:var(--ink);transform:scale(1.25);}
+</style>
+</head>
+<body>
+
+<canvas id="cv"></canvas>
+<div id="dots"></div>
+<div id="bubble"><div class="bubble-inner" id="bubble-inner"></div><div class="bubble-tail"></div></div>
+<button id="mbtn" onclick="toggleMusic()">♪ tocar música</button>
+<!-- ============================================================
+     MÚSICA — coloca o ficheiro de música aqui
+     1. Copia o ficheiro de música (ex: count-on-me.mp3) para a
+        mesma pasta que este HTML
+     2. Substitui "count-on-me.mp3" pelo nome do teu ficheiro
+     ============================================================ -->
+<audio id="music" loop>
+  <source src="Bruno Mars - Count on Me (Lyrics).mp3" type="audio/mpeg">
+</audio>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CANVAS + RESIZE
+// ═══════════════════════════════════════════════════
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W, H;
+function resize(){ W = cv.width = innerWidth; H = cv.height = innerHeight; positionBubble(); }
+window.addEventListener('resize', resize); resize();
+
+// ═══════════════════════════════════════════════════
+// DOTS
+// ═══════════════════════════════════════════════════
+const NDOTS = 5;
+(function(){ const d=document.getElementById('dots'); for(let i=0;i<NDOTS;i++){const el=document.createElement('div');el.className='dot';el.id='dot'+i;d.appendChild(el);} })();
+function setDot(n){ document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===n)); }
+
+// ═══════════════════════════════════════════════════
+// MESSAGES — each stop content
+// ═══════════════════════════════════════════════════
+const STOPS = [
+  // 0 — intro
+  {
+    dot: 0,
+    html: `<div class="msg-title">
+             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1A1008" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19.5 2.5S18 2 16.5 3.5L13 7 4.8 5.2l-1.8 1.8 6.5 3.5L7 14H4l-1 2h3l2 3 2-1v-3l3.5-2.5 3.5 6.5z"/></svg>
+             Tem um minuto?
+           </div>
+           <div class="msg-body">ei, você tem um segundo?<br>eu preciso de falar uma coisa... ✈️</div>`,
+    btn: `<button class="btn" onclick="startMusicAndNext()">pode falar →</button>`
+  },
+  // 1 — o que eu fiz
+  {
+    dot: 1,
+    html: `<div class="msg-title">
+             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1A1008" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+             o que eu fiz
+           </div>
+           <div class="msg-body">
+             eu passei da linha e acabei fazendo<br>
+             algo que <strong>não devia</strong>... e não escutei<br>
+             quando a minha ex me falava que<br>
+             <strong>calado fico mais bonito.</strong> 🤐<br><br>
+             <em>culpa 100% minha.</em>
+           </div>`,
+    btn: `<button class="btn" onclick="next()">continua →</button>`
+  },
+  // 2 — análise honesta
+  {
+    dot: 2,
+    html: `<div class="msg-title" style="font-size:clamp(18px,4vw,24px)">
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1008" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+             análise das mudanças 
+           </div>
+           <div class="stats">
+             <div class="sr"><span class="sl">amor pela filha</span><div class="so"><div class="si" data-v="100" style="background:#27AE60"></div></div><span class="sp">100% ✅</span></div>
+             <div class="sr"><span class="sl">filtro boca→cérebro</span><div class="so"><div class="si" data-v="12" style="background:#E8312A"></div></div><span class="sp">12% 💀</span></div>
+             <div class="sr"><span class="sl">intenção de melhorar</span><div class="so"><div class="si" data-v="99" style="background:#27AE60"></div></div><span class="sp">99% 💪</span></div>
+           </div>`,
+    btn: `<button class="btn" onclick="next()">e então? →</button>`,
+    onShow: ()=>{ setTimeout(()=>{ document.querySelectorAll('.si').forEach(b=>b.style.width=b.getAttribute('data-v')+'%'); },300); }
+  },
+  // 3 — plano
+  {
+    dot: 3,
+    html: `<div class="msg-title" style="font-size:clamp(18px,4vw,24px)">
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1008" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+             o plano
+           </div>
+           <div id="plist">
+             <div class="patch" data-d="100"><span style="font-size:18px">✅</span><span class="pt"> pensar <strong>antes</strong> de falar</span></div>
+             <div class="patch" data-d="350"><span style="font-size:18px">✅</span><span class="pt"> filtro de palavras ativado</span></div>
+             <div class="patch" data-d="600"><span style="font-size:18px">✅</span><span class="pt"> orgulho: <strong>deletado</strong></span></div>
+             <div class="patch" data-d="850"><span style="font-size:18px">✅</span><span class="pt"> amor pela filha: sempre <strong>100%</strong> ♥</span></div>
+           </div>`,
+    btn: `<button class="btn green" id="btnp" style="opacity:0;transition:opacity .5s" onclick="next()">tem uma carta 💌 →</button>`,
+    onShow: ()=>{
+      document.querySelectorAll('.patch').forEach(p=>{
+        setTimeout(()=>p.classList.add('show'), parseInt(p.getAttribute('data-d')));
+      });
+      setTimeout(()=>{ const b=document.getElementById('btnp'); if(b) b.style.opacity='1'; }, 1300);
+    }
+  },
+  // 4 — carta
+  {
+    dot: 4,
+    html: `<div class="letter">
+             <div class="tape"></div>
+             <div class="llines"></div>
+             <div class="ltitle">brincadeiras à parte...</div>
+             <div class="lbody">
+               Eu <strong>realmente me importo</strong> contigo.<br>
+               Eu errei.<br><br>
+               E amizade assim não é algo<br>
+               que eu quero perder por causa de<br>
+               <strong>uma brincadeira de mal gosto.</strong><br><br>
+               Por isso quero me desculpar<br>
+               pelo que fiz. Na próxima vou<br>
+               fazer só do <strong>Natan</strong>. 😅<br><br>
+               Você aceita minhas desculpas?
+             </div>
+             <div class="lsig">— com amor, pai ♥</div>
+             <div class="yn">
+               <button class="btn green" style="margin-top:0" onclick="answer(true)">✅ aceito</button>
+               <button class="btn red" style="margin-top:0" onclick="answer(false)">❌ não aceito</button>
+             </div>
+             <div id="impatient-nudge" style="opacity:0;transition:opacity .6s ease;margin-top:10px;font-family:'Kalam',cursive;font-size:13px;color:rgba(26,16,8,.55);text-align:center;position:relative;z-index:1;">
+               aceita então... estou ansioso 😭
+             </div>
+           </div>`,
+    btn: ``,
+    onShow: ()=>{
+      // after 5s, show impatient nudge
+      window._impatientTimer = setTimeout(()=>{
+        const nudge = document.getElementById('impatient-nudge');
+        if(nudge) nudge.style.opacity='1';
+      }, 8000);
+    }
+  },
+  {
+    dot: -1,
+    html: `<div class="cat-wrap">
+             <svg width="160" height="145" viewBox="0 0 190 170">
+               <ellipse cx="95" cy="125" rx="58" ry="46" fill="#F0C060"/>
+               <circle cx="95" cy="72" r="50" fill="#F0C060"/>
+               <polygon points="55,36 42,8 70,28" fill="#F0C060"/>
+               <polygon points="135,36 148,8 120,28" fill="#F0C060"/>
+               <polygon points="58,34 50,14 68,28" fill="#FFAABB"/>
+               <polygon points="132,34 140,14 122,28" fill="#FFAABB"/>
+               <path d="M72,70 Q81,58 90,70" stroke="#1A1008" stroke-width="4" fill="none" stroke-linecap="round"/>
+               <path d="M100,70 Q109,58 118,70" stroke="#1A1008" stroke-width="4" fill="none" stroke-linecap="round"/>
+               <ellipse cx="68" cy="80" rx="11" ry="7" fill="rgba(255,100,100,0.32)"/>
+               <ellipse cx="122" cy="80" rx="11" ry="7" fill="rgba(255,100,100,0.32)"/>
+               <path d="M78,87 Q95,108 112,87" stroke="#1A1008" stroke-width="3" fill="none" stroke-linecap="round"/>
+               <path d="M79,88 Q95,107 111,88 L110,95 Q95,112 80,95Z" fill="white"/>
+               <ellipse cx="95" cy="106" rx="9" ry="6" fill="#FF8A9A"/>
+               <line x1="26" y1="78" x2="64" y2="82" stroke="#1A1008" stroke-width="1.5" stroke-linecap="round"/>
+               <line x1="24" y1="86" x2="64" y2="86" stroke="#1A1008" stroke-width="1.5" stroke-linecap="round"/>
+               <line x1="126" y1="82" x2="164" y2="78" stroke="#1A1008" stroke-width="1.5" stroke-linecap="round"/>
+               <line x1="126" y1="86" x2="166" y2="86" stroke="#1A1008" stroke-width="1.5" stroke-linecap="round"/>
+               <path d="M50,114 Q32,95 24,74" stroke="#F0C060" stroke-width="17" stroke-linecap="round" fill="none"/>
+               <path d="M140,114 Q158,95 166,74" stroke="#F0C060" stroke-width="17" stroke-linecap="round" fill="none"/>
+               <circle cx="23" cy="70" r="11" fill="#F0C060"/>
+               <circle cx="167" cy="70" r="11" fill="#F0C060"/>
+             </svg>
+             <div class="cat-msg">YEEEEES!! 🎉</div>
+             <div class="cat-sub">sabia que ia aceitar 💛<br>te amo demais, filha.</div>
+           </div>`,
+    btn: ``
+  },
+  // 6 — gato triste
+  {
+    dot: -1,
+    html: `<div class="cat-wrap">
+             <svg width="160" height="145" viewBox="0 0 190 170">
+               <ellipse cx="95" cy="125" rx="58" ry="46" fill="#90B8D0"/>
+               <circle cx="95" cy="72" r="50" fill="#90B8D0"/>
+               <polygon points="55,38 44,10 72,30" fill="#90B8D0"/>
+               <polygon points="135,38 146,10 118,30" fill="#90B8D0"/>
+               <polygon points="59,36 52,16 70,30" fill="#C8A4B4"/>
+               <polygon points="131,36 138,16 120,30" fill="#C8A4B4"/>
+               <ellipse cx="80" cy="72" rx="13" ry="14" fill="white"/>
+               <ellipse cx="110" cy="72" rx="13" ry="14" fill="white"/>
+               <circle cx="80" cy="73" r="9" fill="#5A8AAA"/>
+               <circle cx="110" cy="73" r="9" fill="#5A8AAA"/>
+               <circle cx="80" cy="73" r="5.5" fill="#1A2840"/>
+               <circle cx="110" cy="73" r="5.5" fill="#1A2840"/>
+               <circle cx="83" cy="69" r="2.8" fill="white"/>
+               <circle cx="113" cy="69" r="2.8" fill="white"/>
+               <path d="M68,60 Q80,66 92,60" stroke="#1A2840" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+               <path d="M98,60 Q110,66 122,60" stroke="#1A2840" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+               <ellipse cx="74" cy="88" rx="3.5" ry="5.5" fill="rgba(100,180,255,.85)"/>
+               <ellipse cx="116" cy="88" rx="3.5" ry="5.5" fill="rgba(100,180,255,.85)"/>
+               <path d="M78,96 Q95,88 112,96" stroke="#1A2840" stroke-width="3" stroke-linecap="round" fill="none"/>
+               <line x1="24" y1="80" x2="64" y2="82" stroke="#1A2840" stroke-width="1.5" stroke-linecap="round"/>
+               <line x1="22" y1="88" x2="64" y2="87" stroke="#1A2840" stroke-width="1.5" stroke-linecap="round"/>
+               <line x1="126" y1="82" x2="166" y2="80" stroke="#1A2840" stroke-width="1.5" stroke-linecap="round"/>
+               <line x1="126" y1="87" x2="168" y2="88" stroke="#1A2840" stroke-width="1.5" stroke-linecap="round"/>
+               <path d="M50,116 Q36,132 38,152" stroke="#90B8D0" stroke-width="15" stroke-linecap="round" fill="none"/>
+               <path d="M140,116 Q154,132 152,152" stroke="#90B8D0" stroke-width="15" stroke-linecap="round" fill="none"/>
+             </svg>
+             <div class="cat-msg" style="color:#2C5F80">tá bom... 😿</div>
+             <div class="cat-sub"><strong>tem certeza mesmo?</strong></div>
+           </div>`,
+    btn: `<div class="yn" style="margin-top:4px">
+            <button class="btn green" onclick="answer(true)">tá bom, aceito 💛</button>
+            <button class="btn red" onclick="noAgain()">ainda não 😤</button>
+          </div>`
+  },
+  // 7 — pleading
+  {
+    dot: -1,
+    html: `<div class="cat-wrap">
+             <div style="font-size:64px;line-height:1;margin-bottom:4px">🙏</div>
+             <div class="cat-msg">por favoooor</div>
+             <div class="cat-sub">você sabe que eu te amo, né?<br><strong>dá uma chance pro velho? 😭</strong></div>
+           </div>`,
+    btn: `<div class="yn">
+            <button class="btn green" onclick="answer(true)">ok, aceito 💛</button>
+            <button class="btn red" onclick="reallyNo()">NÃO 😤</button>
+          </div>`
+  },
+  // 8 — ok então
+  {
+    dot: -1,
+    html: `<div class="cat-wrap">
+             <div style="font-size:60px;line-height:1;margin-bottom:6px">😢</div>
+             <div class="cat-msg" style="color:#F5622D">epha.. tá bala.</div>
+             <div class="cat-sub">mas quem desiste é gay,<br>então ainda vou tentar. 😤<br><br><strong>se mudares de ideia, clica aqui em baixo:</strong></div>
+           </div>`,
+    btn: `<button class="btn green" onclick="answer(true)">tá bom... aceito 💛</button>`
+  },
+];
+
+// ═══════════════════════════════════════════════════
+// PLANE STATE
+// ═══════════════════════════════════════════════════
+let planeX = -100, planeY = 0, planeAngle = 0;
+let planeScale = 1;
+let landX = 0, landY = 0;
+let state = 'idle'; // 'flying-in' | 'landing' | 'landed' | 'taking-off'
+let animT = 0;
+let flyFrom = {x:0,y:0};
+let currentStop = -1;
+let nextStop = 0;
+
+// Landing spots — shifted around depending on which stop
+function getLandSpot(idx){
+  const spots = [
+    {x:.50, y:.72},
+    {x:.35, y:.70},
+    {x:.62, y:.68},
+    {x:.42, y:.72},
+    {x:.55, y:.70},
+  ];
+  const s = spots[idx % spots.length];
+  return {x: s.x*W, y: s.y*H};
+}
+
+// Position bubble above plane land spot
+function positionBubble(){
+  const b = document.getElementById('bubble');
+  const bw = Math.min(420, W*0.86);
+  b.style.width = bw + 'px';
+  // will be set per-landing
+}
+
+function setBubblePosition(lx, ly){
+  const b = document.getElementById('bubble');
+  const bw = Math.min(420, W * 0.86);
+  b.style.width = bw + 'px';
+  b.style.left = '0px';
+  b.style.top = '0px';
+  b.style.transform = 'none';
+
+  // horizontal: center on plane, clamp to screen
+  let bx = lx - bw/2;
+  bx = Math.max(8, Math.min(W - bw - 8, bx));
+  b.style.left = bx + 'px';
+
+  // vertical: always place above the plane
+  // use a fixed generous height estimate so it doesn't need reflow
+  const bh = b.offsetHeight || 260;
+  let by = ly - bh - 40;
+  if(by < 8) by = 8; // clamp top
+  b.style.top = by + 'px';
+}
+
+// ═══════════════════════════════════════════════════
+// DRAW PLANE (paper airplane or little spaceship?)
+// Using a cute paper airplane with hand-drawn feel
+// ═══════════════════════════════════════════════════
+function drawPlane(x, y, ang, scale){
+  const s = Math.min(W,H) * 0.055 * scale;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.scale(scale, scale);
+  // shadow
+  ctx.save(); ctx.translate(4,6); ctx.globalAlpha=.1;
+  ctx.beginPath(); ctx.moveTo(s*1.5,0); ctx.lineTo(-s*.6,s*.58); ctx.lineTo(-s*.1,0); ctx.lineTo(-s*.6,-s*.58); ctx.closePath();
+  ctx.fillStyle='#000'; ctx.fill(); ctx.restore();
+  // main body
+  ctx.fillStyle='#FFFEF5'; ctx.strokeStyle='#1A1008'; ctx.lineWidth=2.2/scale;
+  ctx.beginPath(); ctx.moveTo(s*1.5,0); ctx.lineTo(-s*.6,s*.58); ctx.lineTo(-s*.1,0); ctx.lineTo(-s*.6,-s*.58); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // center crease
+  ctx.beginPath(); ctx.moveTo(s*1.5,0); ctx.lineTo(-s*.1,0);
+  ctx.strokeStyle='rgba(26,16,8,.28)'; ctx.lineWidth=1.5/scale; ctx.stroke();
+  // bottom fold highlight
+  ctx.beginPath(); ctx.moveTo(-s*.6,s*.58); ctx.lineTo(-s*.1,0); ctx.lineTo(-s*.4,s*.3); ctx.closePath();
+  ctx.fillStyle='rgba(255,255,255,.5)'; ctx.fill();
+  ctx.strokeStyle='rgba(26,16,8,.5)'; ctx.lineWidth=1.5/scale; ctx.stroke();
+  // little red detail strip
+  ctx.beginPath(); ctx.moveTo(s*.6,-s*.14); ctx.lineTo(s*1.1,-s*.06);
+  ctx.strokeStyle='rgba(232,49,42,.5)'; ctx.lineWidth=3/scale; ctx.lineCap='round'; ctx.stroke();
+  ctx.restore();
+}
+
+// smoke trail particles
+const trail = [];
+function addTrail(x,y){
+  trail.push({x,y,r:Math.random()*6+3,alpha:.35,dx:(Math.random()-.5)*.8,dy:-Math.random()*.6-.2});
+}
+function updateTrail(){
+  for(let i=trail.length-1;i>=0;i--){
+    trail[i].alpha-=.014; trail[i].x+=trail[i].dx; trail[i].y+=trail[i].dy;
+    if(trail[i].alpha<=0) trail.splice(i,1);
+  }
+}
+function drawTrail(){
+  trail.forEach(p=>{
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${p.alpha})`; ctx.fill();
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// ANIMATION CURVES
+// ═══════════════════════════════════════════════════
+function easeOut(t){ return 1-Math.pow(1-t,3); }
+function easeIn(t){ return t*t*t; }
+function easeInOut(t){ return t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+
+// Bezier arc path for flying in
+function flyPath(t, fx,fy, tx,ty){
+  // control point: arc above
+  const cx = (fx+tx)/2, cy = Math.min(fy,ty) - H*.25;
+  const mt = easeInOut(t);
+  return {
+    x: (1-mt)*(1-mt)*fx + 2*(1-mt)*mt*cx + mt*mt*tx,
+    y: (1-mt)*(1-mt)*fy + 2*(1-mt)*mt*cy + mt*mt*ty,
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════
+let lastTs = 0;
+const FLY_DUR = 1600; // ms to fly in
+const LAND_DUR = 500;
+const TAKEOFF_DUR = 900;
+let animStart = 0;
+let takeoffTarget = {x:0,y:0};
+
+function loop(ts){
+  const dt = ts - lastTs; lastTs = ts;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#F5A623'; ctx.fillRect(0,0,W,H);
+  updateTrail();
+  drawTrail();
+
+  if(state==='flying-in'){
+    const t = Math.min((ts-animStart)/FLY_DUR,1);
+    const pos = flyPath(t, flyFrom.x,flyFrom.y, landX,landY);
+    planeX=pos.x; planeY=pos.y;
+    // angle tangent
+    if(t<.99){
+      const pos2=flyPath(Math.min(t+.02,1),flyFrom.x,flyFrom.y,landX,landY);
+      planeAngle=Math.atan2(pos2.y-pos.y,pos2.x-pos.x);
+    }
+    planeScale=1;
+    if(t>0.1) addTrail(planeX,planeY);
+    drawPlane(planeX,planeY,planeAngle,planeScale);
+    if(t>=1){
+      state='landing';
+      animStart=ts;
+    }
+  } else if(state==='landing'){
+    const t=Math.min((ts-animStart)/LAND_DUR,1);
+    // bounce settle
+    const bounce=Math.sin(t*Math.PI)*0.12*(1-t);
+    planeX=landX; planeY=landY+bounce*40;
+    // level out angle
+    planeAngle=planeAngle*(1-easeOut(t));
+    planeScale=1+bounce*.3;
+    drawPlane(planeX,planeY,planeAngle,planeScale);
+    if(t>=1){
+      state='landed';
+      planeAngle=0;
+      // show bubble
+      showBubble(nextStop);
+    }
+  } else if(state==='landed'){
+    // idle bob
+    const bob=Math.sin(ts/600)*3;
+    drawPlane(planeX,planeY+bob,planeAngle,1);
+  } else if(state==='taking-off'){
+    const t=Math.min((ts-animStart)/TAKEOFF_DUR,1);
+    const pos=flyPath(t, landX,landY, takeoffTarget.x,takeoffTarget.y);
+    planeX=pos.x; planeY=pos.y;
+    if(t<.99){
+      const pos2=flyPath(Math.min(t+.03,1),landX,landY,takeoffTarget.x,takeoffTarget.y);
+      planeAngle=Math.atan2(pos2.y-pos.y,pos2.x-pos.x);
+    }
+    if(t>0.05) addTrail(planeX,planeY);
+    drawPlane(planeX,planeY,planeAngle,1);
+    if(t>=1){
+      // now fly in to next stop
+      const spot=getLandSpot(nextStop);
+      landX=spot.x; landY=spot.y;
+      flyFrom={x:takeoffTarget.x, y:takeoffTarget.y};
+      state='flying-in';
+      animStart=ts;
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════
+// SHOW BUBBLE
+// ═══════════════════════════════════════════════════
+function showBubble(idx){
+  currentStop=idx;
+  const stop=STOPS[idx];
+  const bi=document.getElementById('bubble-inner');
+  bi.innerHTML=stop.html+(stop.btn||'');
+  // re-add tail
+  const bub=document.getElementById('bubble');
+  // remove old tail
+  const oldTail=bub.querySelector('.bubble-tail');
+  if(oldTail) oldTail.remove();
+  const tail=document.createElement('div'); tail.className='bubble-tail';
+  bub.appendChild(tail);
+  if(stop.dot>=0) setDot(stop.dot); else document.getElementById('dots').style.opacity='0';
+  positionBubble();
+  // force layout before positioning
+  bub.style.opacity='0';
+  bub.style.display='block';
+  requestAnimationFrame(()=>{
+    setBubblePosition(planeX, planeY);
+    bub.classList.add('show');
+    bub.style.opacity='';
+  });
+  if(stop.onShow) stop.onShow();
+}
+
+function hideBubble(cb){
+  clearTimeout(window._impatientTimer);
+  const b=document.getElementById('bubble');
+  b.classList.remove('show');
+  setTimeout(cb,400);
+}
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+function next(){
+  hideBubble(()=>{
+    nextStop = currentStop+1;
+    // take off to offscreen, then land at next spot
+    takeoffTarget={x: Math.random()>.5 ? W+120 : -120, y: Math.random()*H*.4+H*.1};
+    state='taking-off';
+    animStart=performance.now();
+  });
+}
+
+function answer(yes){
+  hideBubble(()=>{
+    nextStop = yes ? 5 : 6;
+    takeoffTarget={x: W+120, y:H*.2};
+    state='taking-off';
+    animStart=performance.now();
+  });
+}
+function noAgain(){
+  hideBubble(()=>{
+    nextStop=7;
+    takeoffTarget={x:-120,y:H*.25};
+    state='taking-off';
+    animStart=performance.now();
+  });
+}
+function reallyNo(){
+  hideBubble(()=>{
+    nextStop=8;
+    takeoffTarget={x:W+120,y:H*.3};
+    state='taking-off';
+    animStart=performance.now();
+  });
+}
+
+let musicOn=false;
+function toggleMusic(){
+  const audio = document.getElementById('music');
+  const btn = document.getElementById('mbtn');
+  if(!musicOn){
+    audio.play();
+    btn.textContent='♪ pausar';
+    musicOn=true;
+  } else {
+    audio.pause();
+    btn.textContent='♪ tocar música';
+    musicOn=false;
+  }
+}
+
+function startMusicAndNext(){
+  const audio = document.getElementById('music');
+  const btn = document.getElementById('mbtn');
+  if(!musicOn){
+    audio.play().catch(()=>{}); // catch autoplay block
+    btn.textContent='♪ pausar';
+    musicOn=true;
+  }
+  next();
+}
+
+// ═══════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════
+document.fonts.ready.then(go).catch(()=>setTimeout(go,600));
+
+function go(){
+  positionBubble();
+  // plane starts offscreen left, flies to first spot
+  const spot=getLandSpot(0);
+  landX=spot.x; landY=spot.y;
+  flyFrom={x:-120, y:H*.6};
+  planeX=flyFrom.x; planeY=flyFrom.y;
+  state='flying-in';
+  animStart=performance.now();
+  nextStop=0;
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
